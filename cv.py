@@ -1,60 +1,34 @@
-import cv2
+import cv2 as cv
 import numpy as np
-import math
 
 def main():
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
-    cap = cv2.VideoCapture(0)
+    cap = cv.VideoCapture(0)
     while True:
         ret, frame = cap.read()
-        cv2.imshow("input", frame)
 
-        preframe = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        retval, preframe = cv2.threshold(preframe, 80, 255, 0)
-        cv2.imshow("preprocessed", preframe)
+        a,b,c = cv.split(frame)
 
-        closed = cv2.erode(cv2.dilate(preframe, kernel, iterations=1), kernel, iterations=1)
-        cv2.imshow("closed", closed)
+        cframe = c
+        cframe = cv.medianBlur(cframe,5)
+        cv.imshow("input", c)
+        cv.imshow("blur", cframe)
+        # cframe = cv.Canny(cframe,100,250)
+        circles = cv.HoughCircles(cframe,cv.HOUGH_GRADIENT,1,2000,param1=50,param2=30,minRadius=10,maxRadius=300)
+        if circles is not None:
+            circles = np.uint16(np.around(circles))
+            for i in circles[0,:]:
+                # draw the outer circle
+                cv.circle(frame,(i[0],i[1]),i[2],(0,255,0),2)
+                # draw the center of the circle
+                cv.circle(frame,(i[0],i[1]),2,(0,0,255),3)
 
-        contours, hierarchy = cv2.findContours(closed, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
+        cv.imshow('test', frame)
 
-        cv2.drawContours(frame, contours, -1, (255,0,0), 2)
-
-        for contour in contours:
-            contour = cv2.convexHull(contour)
-            area = cv2.contourArea(contour)
-            bounding_box = cv2.boundingRect(contour)
-
-            extend = area / (bounding_box[2] * bounding_box[3])
-
-            circumference = cv2.arcLength(contour,True)
-            circularity = area and circumference ** 2 / (4*math.pi*area)
-
-            # reject the contours with big extend
-            if extend > 0.8 or area < 100 or circularity > 1.2:
-                continue
-
-            # calculate countour center and draw a dot there
-            m = cv2.moments(contour)
-            if m['m00'] != 0:
-                center = (int(m['m10'] / m['m00']), int(m['m01'] / m['m00']))
-                cv2.circle(frame, center, 3, (0, 255, 0), -1)
-
-            # fit an ellipse around the contour and draw it into the image
-            try:
-                ellipse = cv2.fitEllipse(contour)
-                cv2.ellipse(frame, box=ellipse, color=(0, 255, 0))
-            except:
-                pass
-
-        cv2.imshow('output', frame)
-
-        if cv2.waitKey(1) & 0xff == ord('q'):
+        if cv.waitKey(1) & 0xff == ord('q'):
             break
-
     cap.release()
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    cv.waitKey(0)
+    cv.destroyAllWindows()
 
 def getCirles(frame):
     pass
