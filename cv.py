@@ -7,23 +7,22 @@ def main():
     cap = cv2.VideoCapture('cam.mp4')
     while True:
         ret, raw = cap.read()
+        cv2.imshow('raw', raw)
 
         # channel
-        L, U, V = cv2.split(cv2.cvtColor(raw, cv2.COLOR_BGR2LUV))
-        channel = cv2.merge([V, V, V])
+        B,G,R = cv2.split(raw)
+        channel = cv2.merge([R, R, R])
         channel = cv2.cvtColor(channel, cv2.COLOR_BGR2GRAY)
         cv2.imshow('pre1', channel)
         
         # threshold
-        retval, threshold = cv2.threshold(channel, 130, 255, 0)
+        retval, threshold = cv2.threshold(channel, 25, 255, 0)
         cv2.imshow("threshold", threshold)
 
         # smooth
-        # closed = cv2.erode(cv2.dilate(threshold, kernel, iterations=1), kernel, iterations=1)
         closed = cv2.morphologyEx(threshold, cv2.MORPH_CLOSE, kernel)
         closed = cv2.medianBlur(closed, 3)
         cv2.imshow("smooth", closed)
-
         
         contours, hierarchy = cv2.findContours(closed, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
 
@@ -39,9 +38,13 @@ def main():
             circumference = cv2.arcLength(contour,True)
             circularity = area and circumference ** 2 / (4*math.pi*area)
 
-            # reject the contours with big extend
-            if extend > 0.8 or area < 500 or circularity > 1.2:
+            # reject some contours
+            if extend > 0.85 or area < 1000 or circularity > 1.15:
                 continue
+
+            cv2.putText(raw, 'Area: ' + str(round(area, 2)), (5, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, 255, 2)
+            cv2.putText(raw, 'Circularity: ' + str(round(circularity, 2)), (5, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6, 255, 2)
+            cv2.putText(raw, 'Extend: ' + str(round(extend, 2)), (5, 85), cv2.FONT_HERSHEY_SIMPLEX, 0.6, 255, 2)
 
             # calculate countour center and draw a dot there
             m = cv2.moments(contour)
@@ -58,15 +61,12 @@ def main():
 
         cv2.imshow('output', raw)
 
-        if cv2.waitKey(30) & 0xff == ord('q'):
+        if cv2.waitKey(100) & 0xff == ord('q'):
             break
 
     cap.release()
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-
-def getCirles(frame):
-    pass
 
 if __name__ == "__main__":
     main()
