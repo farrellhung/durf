@@ -1,14 +1,23 @@
 import cv2
 import numpy as np
 import math
-import time
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+from itertools import count
+
 
 def main():
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (7, 7))
+
+    x = []
+    y = []
+    index = count()
+
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (13, 13))
     cap = cv2.VideoCapture('cam.mp4')
+
+    ret, raw = cap.read()
     
-    while True:
-        ret, raw = cap.read()
+    while ret:
         cv2.imshow('raw', raw)
 
         # channel
@@ -16,18 +25,18 @@ def main():
         cv2.imshow('channel', R)
         
         # morphology transformations (note that the binary image is inversed. our object of focus is the black pupil while we are performing transformations for the white area)
-        closed = cv2.erode(R, cv2.getStructuringElement(cv2.MORPH_RECT, (13, 13))) #continue with closing the pupil
-        closed = cv2.dilate(closed, cv2.getStructuringElement(cv2.MORPH_RECT, (13, 13)))
+        closed = cv2.erode(R, kernel) #continue with closing the pupil
+        closed = cv2.dilate(closed, kernel)
         closed = cv2.medianBlur(closed, 7)
         cv2.imshow('closed', closed)
 
         # threshold
         retval, closed = cv2.threshold(closed, 25, 255, 0)
-        cv2.imshow("threshold", closed)
+        cv2.imshow('threshold', closed)
 
         contours, hierarchy = cv2.findContours(closed, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
 
-        cv2.drawContours(closed, contours, -1, (255,0,0), 2)
+        cv2.drawContours(closed, contours, -1, (0, 255, 0), 2)
 
         for contour in contours:
             contour = cv2.convexHull(contour)
@@ -51,23 +60,33 @@ def main():
             m = cv2.moments(contour)
             if m['m00'] != 0:
                 center = (int(m['m10'] / m['m00']), int(m['m01'] / m['m00']))
-                cv2.circle(raw, center, 3, (0, 255, 0), -1)
+                cv2.circle(raw, center, 2, (255, 0, 0), -1)
 
             # fit an ellipse around the contour and draw it into the image
             try:
                 ellipse = cv2.fitEllipse(contour)
-                cv2.ellipse(raw, box=ellipse, color=(0, 255, 0))
+                cv2.ellipse(raw, box=ellipse, color=(255, 0, 0))
             except:
                 pass
 
+            y.append(area)
+            break
+        else:
+            y.append(0)
+        x.append(next(index))
+
         cv2.imshow('output', raw)
+        ret, raw = cap.read()
 
         if cv2.waitKey(33) & 0xff == ord(' '):
             if cv2.waitKey(0) & 0xff == ord('q'):
                 break
-
     cap.release()
     cv2.destroyAllWindows()
+    return (x,y)
 
 if __name__ == "__main__":
-    main()
+    x, y = main()
+    fig, ax = plt.subplots()
+    ax.plot(x, y, linewidth=2.0)
+    plt.show()
