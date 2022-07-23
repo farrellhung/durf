@@ -1,29 +1,30 @@
 import cv2
 import numpy as np
 import math
+import time
 
 def main():
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (7, 7))
     cap = cv2.VideoCapture('cam.mp4')
+    
     while True:
         ret, raw = cap.read()
         cv2.imshow('raw', raw)
 
         # channel
         B,G,R = cv2.split(raw)
-        channel = cv2.merge([R, R, R])
-        channel = cv2.cvtColor(channel, cv2.COLOR_BGR2GRAY)
-        cv2.imshow('pre1', channel)
+        cv2.imshow('channel', R)
         
-        # threshold
-        retval, threshold = cv2.threshold(channel, 25, 255, 0)
-        cv2.imshow("threshold", threshold)
+        # morphology transformations (note that the binary image is inversed. our object of focus is the black pupil while we are performing transformations for the white area)
+        closed = cv2.erode(R, cv2.getStructuringElement(cv2.MORPH_RECT, (13, 13))) #continue with closing the pupil
+        closed = cv2.dilate(closed, cv2.getStructuringElement(cv2.MORPH_RECT, (13, 13)))
+        closed = cv2.medianBlur(closed, 7)
+        cv2.imshow('closed', closed)
 
-        # smooth
-        closed = cv2.morphologyEx(threshold, cv2.MORPH_CLOSE, kernel)
-        closed = cv2.medianBlur(closed, 3)
-        cv2.imshow("smooth", closed)
-        
+        # threshold
+        retval, closed = cv2.threshold(closed, 25, 255, 0)
+        cv2.imshow("threshold", closed)
+
         contours, hierarchy = cv2.findContours(closed, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
 
         cv2.drawContours(closed, contours, -1, (255,0,0), 2)
@@ -39,7 +40,7 @@ def main():
             circularity = area and circumference ** 2 / (4*math.pi*area)
 
             # reject some contours
-            if extend > 0.85 or area < 1000 or circularity > 1.15:
+            if extend > 0.8 or area < 1000 or circularity > 1.1:
                 continue
 
             cv2.putText(raw, 'Area: ' + str(round(area, 2)), (5, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, 255, 2)
@@ -61,11 +62,11 @@ def main():
 
         cv2.imshow('output', raw)
 
-        if cv2.waitKey(100) & 0xff == ord('q'):
-            break
+        if cv2.waitKey(33) & 0xff == ord(' '):
+            if cv2.waitKey(0) & 0xff == ord('q'):
+                break
 
     cap.release()
-    cv2.waitKey(0)
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
