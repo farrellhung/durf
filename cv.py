@@ -7,7 +7,11 @@ from itertools import count
 
 
 def main():
-
+    plt.figure(figsize=(10, 6))
+    plt.ylim(0,3000)
+    # plt.axis([0, 700, 0, 3000])
+    plt.xlabel("Tick")
+    plt.ylabel("Pupil Area")
     x = []
     y = []
     index = count()
@@ -22,10 +26,11 @@ def main():
 
         # channel
         B,G,R = cv2.split(raw)
-        cv2.imshow('channel', R)
+        # cv2.imshow('channel', R)
         
-        # morphology transformations (note that the binary image is inversed. our object of focus is the black pupil while we are performing transformations for the white area)
-        closed = cv2.erode(R, kernel) #continue with closing the pupil
+        # morphology transformations
+        # note that the binary image is inversed. we are performing transformations for the white area while our object of focus is the black pupil
+        closed = cv2.erode(R, kernel)
         closed = cv2.dilate(closed, kernel)
         closed = cv2.medianBlur(closed, 7)
         cv2.imshow('closed', closed)
@@ -35,8 +40,7 @@ def main():
         cv2.imshow('threshold', closed)
 
         contours, hierarchy = cv2.findContours(closed, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
-
-        cv2.drawContours(closed, contours, -1, (0, 255, 0), 2)
+        # cv2.drawContours(closed, contours, -1, (0, 255, 0), 2)
 
         for contour in contours:
             contour = cv2.convexHull(contour)
@@ -75,18 +79,18 @@ def main():
             y.append(0)
         x.append(next(index))
 
+        plt.plot(x,y, color='blue')
+        plt.pause(0.00001)
         cv2.imshow('output', raw)
         ret, raw = cap.read()
 
-        if cv2.waitKey(33) & 0xff == ord(' '):
-            if cv2.waitKey(0) & 0xff == ord('q'):
+        if cv2.waitKey(5) & 0xff == ord(' '):          # press spacebar to pause/play
+            if cv2.waitKey(0) & 0xff == ord('q'):       # press q after pausing to quit
                 break
     cap.release()
     cv2.destroyAllWindows()
-    return (x,y)
+    plt.show()
+    
 
 if __name__ == "__main__":
-    x, y = main()
-    fig, ax = plt.subplots()
-    ax.plot(x, y, linewidth=2.0)
-    plt.show()
+    main()
