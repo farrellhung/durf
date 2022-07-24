@@ -2,19 +2,15 @@ import cv2
 import numpy as np
 import math
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
-from itertools import count
 
 
 def main():
     plt.figure(figsize=(10, 6))
-    plt.ylim(0,3000)
-    # plt.axis([0, 700, 0, 3000])
+    plt.axis([0, 200, 0, 3000])
     plt.xlabel("Tick")
     plt.ylabel("Pupil Area")
-    x = []
     y = []
-    index = count()
+    ploty, = plt.plot([])
 
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (13, 13))
     cap = cv2.VideoCapture('cam.mp4')
@@ -77,14 +73,15 @@ def main():
             break
         else:
             y.append(0)
-        x.append(next(index))
 
-        plt.plot(x,y, color='blue')
+        ploty.set_data(range(len(y[-200:])),y[-200:])
+
+        plt.draw()
         plt.pause(0.00001)
         cv2.imshow('output', raw)
         ret, raw = cap.read()
 
-        if cv2.waitKey(5) & 0xff == ord(' '):          # press spacebar to pause/play
+        if cv2.waitKey(15) & 0xff == ord(' '):          # press spacebar to pause/play
             if cv2.waitKey(0) & 0xff == ord('q'):       # press q after pausing to quit
                 break
     cap.release()
