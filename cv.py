@@ -23,6 +23,7 @@ def main():
     
     while ret:
         cv2.imshow('raw', raw)
+        raw_clone = raw.copy()
 
         # channel
         B,G,R = cv2.split(raw)
@@ -33,7 +34,7 @@ def main():
         closed = cv2.erode(R, kernel)
         closed = cv2.dilate(closed, kernel)
         closed = cv2.medianBlur(closed, 7)
-        cv2.imshow('closed', closed)
+        # cv2.imshow('closed', closed)
 
         # threshold
         retval, closed = cv2.threshold(closed, 25, 255, cv2.ADAPTIVE_THRESH_MEAN_C)
@@ -47,7 +48,7 @@ def main():
         params.minCircularity = 0.1
         detector = cv2.SimpleBlobDetector_create(params)
         keypoints = detector.detect(closed)
-        cv2.drawKeypoints(raw, keypoints, np.zeros((1, 1)), (0, 0, 255),cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+        blob = cv2.drawKeypoints(raw, keypoints, np.zeros((1, 1)), (0, 255, 0),cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
         try:
             blobvec.append(int(round(keypoints[0].size*35,0)))
         except:
@@ -74,6 +75,9 @@ def main():
             cv2.putText(raw, 'Area: ' + str(round(area, 2)), (5, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, 255, 2)
             cv2.putText(raw, 'Circularity: ' + str(round(circularity, 2)), (5, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6, 255, 2)
             cv2.putText(raw, 'Extend: ' + str(round(extend, 2)), (5, 85), cv2.FONT_HERSHEY_SIMPLEX, 0.6, 255, 2)
+            cv2.putText(raw_clone, 'Area: ' + str(round(area, 2)), (5, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, 255, 2)
+            cv2.putText(raw_clone, 'Circularity: ' + str(round(circularity, 2)), (5, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6, 255, 2)
+            cv2.putText(raw_clone, 'Extend: ' + str(round(extend, 2)), (5, 85), cv2.FONT_HERSHEY_SIMPLEX, 0.6, 255, 2)
 
             # calculate countour center and draw a dot there
             m = cv2.moments(contour)
@@ -86,7 +90,9 @@ def main():
                 c, r = cv2.minEnclosingCircle(contour)
                 ellipse = cv2.fitEllipse(contour)
                 cv2.ellipse(raw, box=ellipse, color=(255, 0, 0))
-                cv2.putText(raw, 'Radius: ' + str(round(r, 2)), (5, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.6, 255, 2)
+                cv2.circle(raw_clone, center, 2, (100,100,255), -1)
+                cv2.circle(raw_clone, center, int(r), (100,100,255), 1)
+                cv2.putText(raw_clone, 'Radius: ' + str(round(r, 2)), (5, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.6, 255, 2)
             except Exception as e:
                 print(e)
 
@@ -103,7 +109,9 @@ def main():
 
         plt.draw()
         plt.pause(0.00001)
-        cv2.imshow('output', raw)
+        cv2.imshow('contour ellipse', raw)
+        cv2.imshow('contour circle', raw_clone)
+        cv2.imshow('blob', blob)
         ret, raw = cap.read()
 
         if cv2.waitKey(10) & 0xff == ord(' '):          # press spacebar to pause/play
