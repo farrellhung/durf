@@ -17,24 +17,24 @@ def extract_channel(img):
     output = []
     for space in channels:
         img_row = []
-        for img, channel in space:
-            cv2.putText(img, channel, (5, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, 127, 2)
-            img_row.append(cv2.hconcat(img_row))
+        for image, channel in space:
+            cv2.putText(image, channel, (5, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, 255, 2)
+            img_row.append(image)
         output.append(cv2.hconcat(img_row))
     return cv2.vconcat(output)
 
 img = cv2.imread('eyes.png')
-cap = cv2.VideoCapture('cam.mp4')
+# cap = cv2.VideoCapture('cam.mp4')
 
 cv2.namedWindow('channel', cv2.WINDOW_NORMAL)
 cv2.resizeWindow('channel', 1920, 1080)
 
 
-while True:
-    ret, raw = cap.read()
-    cv2.imshow('channel', extract_channel(raw))
-    if cv2.waitKey(30) & 0xff == ord('q'):
-        break
+# while True:
+#     ret, raw = cap.read()
+#     cv2.imshow('channel', extract_channel(raw))
+#     if cv2.waitKey(30) & 0xff == ord('q'):
+#         break
 
 
 cv2.imshow('channel', extract_channel(img))

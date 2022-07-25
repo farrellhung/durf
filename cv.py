@@ -8,9 +8,13 @@ def main():
     plt.figure(figsize=(10, 6))
     plt.axis([0, 200, 0, 3000])
     plt.xlabel("Tick")
-    plt.ylabel("Pupil Area")
-    y = []
-    ploty, = plt.plot([])
+    plt.ylabel("Value")
+    areavec = []
+    radiusvec = []
+    blobvec = []
+    areaplot, = plt.plot([])
+    radiusplot, = plt.plot([])
+    blobplot, = plt.plot([])
 
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (13, 13))
     cap = cv2.VideoCapture('cam.mp4')
@@ -32,9 +36,24 @@ def main():
         cv2.imshow('closed', closed)
 
         # threshold
-        retval, closed = cv2.threshold(closed, 25, 255, 0)
+        retval, closed = cv2.threshold(closed, 25, 255, cv2.ADAPTIVE_THRESH_MEAN_C)
         cv2.imshow('threshold', closed)
 
+        # blob
+        params = cv2.SimpleBlobDetector_Params()
+        params.filterByArea = True
+        params.minArea = 900
+        params.filterByCircularity = True
+        params.minCircularity = 0.1
+        detector = cv2.SimpleBlobDetector_create(params)
+        keypoints = detector.detect(closed)
+        cv2.drawKeypoints(raw, keypoints, np.zeros((1, 1)), (0, 0, 255),cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+        try:
+            blobvec.append(int(round(keypoints[0].size*35,0)))
+        except:
+            blobvec.append(0)
+
+        # contour
         contours, hierarchy = cv2.findContours(closed, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
         # cv2.drawContours(closed, contours, -1, (0, 255, 0), 2)
 
@@ -64,24 +83,30 @@ def main():
 
             # fit an ellipse around the contour and draw it into the image
             try:
+                c, r = cv2.minEnclosingCircle(contour)
                 ellipse = cv2.fitEllipse(contour)
                 cv2.ellipse(raw, box=ellipse, color=(255, 0, 0))
-            except:
-                pass
+                cv2.putText(raw, 'Radius: ' + str(round(r, 2)), (5, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.6, 255, 2)
+            except Exception as e:
+                print(e)
 
-            y.append(area)
+            areavec.append(int(round(area,0)))
+            radiusvec.append(int(round(r*100,0)))
             break
         else:
-            y.append(0)
+            areavec.append(0)
+            radiusvec.append(0)
 
-        ploty.set_data(range(len(y[-200:])),y[-200:])
+        areaplot.set_data(range(len(areavec[-200:])),areavec[-200:])
+        radiusplot.set_data(range(len(radiusvec[-200:])),radiusvec[-200:])
+        blobplot.set_data(range(len(blobvec[-200:])),blobvec[-200:])
 
         plt.draw()
         plt.pause(0.00001)
         cv2.imshow('output', raw)
         ret, raw = cap.read()
 
-        if cv2.waitKey(15) & 0xff == ord(' '):          # press spacebar to pause/play
+        if cv2.waitKey(10) & 0xff == ord(' '):          # press spacebar to pause/play
             if cv2.waitKey(0) & 0xff == ord('q'):       # press q after pausing to quit
                 break
     cap.release()
